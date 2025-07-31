@@ -19,7 +19,8 @@ mast5112/
 │   └── 05-using-state-hooks.md
 │
 ├── apps/
-│   ├── sample.md
+│   ├── sample1.md
+│   └── sample2.md
 │
 └── README.md   ← You are here
 ```
