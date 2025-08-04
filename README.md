@@ -44,7 +44,8 @@ We develop and test apps in a **Virtual Machine (VM)** environment that comes pr
 
 | Guide                               | Description                                                                                        |
 | ----------------------------------- | -------------------------------------------------------------------------------------------------- |
-| `01-installation-guide.md`          | Helps you install and configure your development environment (optional for personal machine setup) |
+| `01-installation-guide.md`          | Helps you install and configure your development environment (optional personal machine setup, Win)|
+| `01-installation-guide-mac.md`      | Helps you install and configure your development environment (specifically for macOS users)        |
 | `02-project-setup-and-execution.md` | Step-by-step instructions to set up and run a basic React Native project in the VM                 |
 | `03-understanding-app.tsx.md`       | Breakdown of the default starter code and component structure                                      |
 | `04-components-and-props.md`        | Introduction to basic React Native components and how to configure them using props                |
