@@ -1103,14 +1103,113 @@ const handleTileClick = (value: number, setTileSelected: (val: boolean) => void)
 
 ---
 
-## 🧭 What’s Coming Next? (Stage 2.5 Preview Ideas)
+## 🎯 **Stage 2.4.1 — Introducing Timed Feedback with `setTimeout()`**
 
-Now that match detection works, next steps might include:
+---
 
-* ✅ **Hide unmatched tiles** after a delay (introduce `useEffect()` or `setTimeout`)
-* ✅ **Lock interaction** briefly during checking
-* ✅ **Track score or attempts**
-* ✅ **Prevent selecting the same tile twice**
-* ✅ **End-game logic** when all matches are found
+### 🧩 What We’ve Done So Far (Recap)
+
+In **Stage 2.4**, we successfully:
+
+* Tracked tile selections in pairs using `selectionCount`
+* Displayed the values of the selected tiles
+* Compared the two selected values to determine if they **match**
+* Updated a `match` variable to show `"yes"` or `"no"` on screen
+
+### 🐞 But... There’s a Subtle Bug
+
+Students may notice:
+
+> “If I match a pair, I see **‘yes’**… but when I move on and select the next pair, I don’t really see **‘no’** — or it flashes too quickly.”
+
+### 🧠 Why This Happens
+
+This is due to how **React handles state updates**:
+
+* When you click a tile, `setMatch()` updates the match status.
+* But when you **quickly select the next tile**, it **overwrites the previous state** before the screen had a chance to clearly display `"no"`.
+* React is **fast** — faster than human eyes.
+
+---
+
+## ⏱ Introducing: `setTimeout()` — *A Short Pause for the Brain*
+
+### 🪄 Real-World Analogy:
+
+> Imagine a game show host asking:
+> “Is it a match?”
+> **They pause briefly**, look at the audience… then say “YES!” or “NO!”
+
+Without that pause, the show feels rushed — and confusing.
+
+Similarly, our game needs a small **delay** after a tile pair is selected, so the player can **see the result** before it resets or moves on.
+
+That’s exactly what `setTimeout()` lets us do.
+
+---
+
+## 🛠️ Code Edit Required in `handleTileClick`
+
+We are modifying the logic in the case where a second tile is selected (i.e., when `selectionCount === 1`) to **delay the reset of the game state** so that feedback (yes/no) remains visible for 1 second.
+
+### 🆕 Updated `handleTileClick`:
+
+```tsx
+const handleTileClick = (value: number, setTileSelected: (val: boolean) => void) => {
+  setTileSelected(true);
+
+  setSelectionCount((prev) => {
+    if (prev === 0) {
+      setFirstSelectedValue(value);
+      setMatch(false); // reset feedback early
+      return prev + 1;
+    } else if (prev === 1) {
+      setSecondSelectedValue(value);
+
+      const isMatch = firstSelectedValue === value;
+      setMatch(isMatch); // show feedback
+
+      // 🕒 NEW: Wait 1 second before resetting
+      setTimeout(() => {
+        // Reset selected values
+        setFirstSelectedValue(0);
+        setSecondSelectedValue(0);
+        setMatch(false); // Optional: clear result after feedback
+
+        // Reset all tile selections
+        setSelected1(false);
+        setSelected2(false);
+        setSelected3(false);
+        setSelected4(false);
+        setSelected5(false);
+        setSelected6(false);
+      }, 1000); // 1000ms = 1 second
+
+      return 0; // restart the selectionCount loop
+    }
+
+    return prev;
+  });
+};
+```
+
+---
+
+## 🔍 What This Fix Does
+
+* Compares the first and second values.
+* Shows **"yes"** or **"no"** on screen.
+* Delays resetting the game board for 1 second.
+* Gives players time to see and understand the feedback.
+* Continues the two-tile selection loop.
+
+---
+
+## 📚 Key Teaching Takeaway
+
+> React is great at updating UI fast — but sometimes it’s **too fast** for real human interactions.
+> `setTimeout()` is a tool we use when we want to **pause and let people see what’s happening**, before moving on.
+
+This sets us up perfectly for later stages where we’ll use `useEffect()` to monitor changes and trigger logic when certain states (like both tiles being selected) are reached.
 
 ---
