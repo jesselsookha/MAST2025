@@ -819,3 +819,298 @@ This avoids **reading stale values**, which is one of the most common bugs in ea
 
 ---
 
+You're progressing really thoughtfully through this project — Stage 2.3 and 2.4 reflect a meaningful evolution in how to handle **multi-step user interactions** in React Native, **without yet introducing `useEffect()`**. Here's a full breakdown of the two stages, comparing them, explaining the subtle timing issue, and offering a clean fix—all structured so you can easily teach this to your students.
+
+---
+
+## 🚀 **Stage 2.3 & 2.4 – Building Toward Matching Pairs**
+
+---
+
+### 🎯 **Goal of These Stages**
+
+* Allow the user to select **two tiles** one after the other.
+* After selecting two, automatically **reset** the selection count.
+* Begin preparing for **match detection** logic.
+* Stay away from `useEffect()` for now — keeping the logic procedural and visible.
+
+---
+
+```tsx
+const [tileSelected, setTileSelected] = useState<boolean>(false);
+const [selectionCount, setSelectionCount] = useState<number>(0);
+
+const [firstSelectedValue, setFirstSelectedValue] = useState<number>(0);
+const [secondSelectedValue, setSecondSelectedValue] = useState<number>(0);
+
+// Optional: helper to check match (e.g., in future logic)
+const checkMatch = (val1: number, val2: number): boolean => {
+  return val1 === val2;
+};
+
+const handleTileClick = (value: number, setTileSelected: (val: boolean) => void) => {
+  setTileSelected(true);
+
+  setSelectionCount((prev) => {
+    if (prev === 0) {
+      setFirstSelectedValue(value);
+      return prev + 1;
+    } else if (prev === 1) {
+      setSecondSelectedValue(value);
+      // We assume you'll add a useEffect or timeout to compare values here
+      return 0; // Reset count to allow a fresh selection round
+    }
+    return prev; // Safety catch, shouldn't reach this
+  });
+};
+```
+
+---
+
+## 🧱 Stage 2.3: Resetting Selection Count
+
+### ✅ What's New
+
+We make the `selectionCount` loop:
+
+* `0` → `1` (after first selection)
+* `1` → `0` (after second selection)
+
+This enables a **repeating pair-selection flow** (without any manual reset by the user).
+
+---
+
+### 🔄 Code Focus (Stage 2.3 Handler)
+
+```tsx
+const handleTileClick = (value: number, setTileSelected: (val: boolean) => void) => {
+  setTileSelected(true);
+
+  setSelectionCount((prev) => {
+    if (prev === 0) {
+      setFirstSelectedValue(value);
+      return prev + 1;
+    } else if (prev === 1) {
+      setSecondSelectedValue(value);
+      return 0; // Reset for next round
+    }
+    return prev;
+  });
+};
+```
+
+> ✅ This is simple and clean.
+> ❌ But **not yet ready for match detection**, because the `firstSelectedValue` is stale when compared outside this block.
+
+---
+**Stage 2.4 - Code**
+
+```tsx
+import { useState } from 'react'; 
+import { TouchableHighlight, Text, View, StyleSheet } from 'react-native';
+
+export default function App() {
+  const [tile1] = useState<number>(Math.floor(Math.random() * 3) + 1);
+  const [tile2] = useState<number>(Math.floor(Math.random() * 3) + 1);
+  const [tile3] = useState<number>(Math.floor(Math.random() * 3) + 1);
+  const [tile4] = useState<number>(Math.floor(Math.random() * 3) + 1);
+  const [tile5] = useState<number>(Math.floor(Math.random() * 3) + 1);
+  const [tile6] = useState<number>(Math.floor(Math.random() * 3) + 1);
+
+  const [selected1, setSelected1] = useState<boolean>(false);
+  const [selected2, setSelected2] = useState<boolean>(false);
+  const [selected3, setSelected3] = useState<boolean>(false);
+  const [selected4, setSelected4] = useState<boolean>(false);
+  const [selected5, setSelected5] = useState<boolean>(false);
+  const [selected6, setSelected6] = useState<boolean>(false);
+  
+  const [tileSelected, setTileSelected] = useState<boolean>(false);
+  const [selectionCount, setSelectionCount] = useState<number>(0);
+
+  const [firstSelectedValue, setFirstSelectedValue] = useState<number>(0);
+  const [secondSelectedValue, setSecondSelectedValue] = useState<number>(0);
+
+  const [match, setMatch] = useState<boolean>(false);
+
+const handleTileClick = (value: number, setTileSelected: (val: boolean) => void) => {
+  setTileSelected(true);
+
+  setSelectionCount((prev) => {
+    if (prev === 0) {
+      setFirstSelectedValue(value);
+      return prev + 1; 
+    } else if (prev === 1) {
+      setSecondSelectedValue(value);
+      return prev - 1; 
+    }
+  });
+
+  if (firstSelectedValue === secondSelectedValue){ 
+    setMatch(true);
+  }
+};
+
+
+return (
+  <View style={styles.container}>
+    <Text style={styles.title}>Matching Game v1</Text> 
+    <View style={styles.row}> 
+      <TouchableHighlight style={styles.tile} onPress={() => handleTileClick(tile1, setSelected1)}>
+        <Text style={styles.tileText}>{selected1 ? tile1 : ''}</Text>
+      </TouchableHighlight>
+      <TouchableHighlight style={styles.tile} onPress={() => handleTileClick(tile2, setSelected2)}>
+        <Text style={styles.tileText}>{selected2 ? tile2 : ''}</Text>
+      </TouchableHighlight>
+      <TouchableHighlight style={styles.tile} onPress={() => handleTileClick(tile3, setSelected3)}>
+        <Text style={styles.tileText}>{selected3 ? tile3 : ''}</Text>
+      </TouchableHighlight>
+    </View>
+    <View style={styles.row}> 
+      <TouchableHighlight style={styles.tile} onPress={() => handleTileClick(tile4, setSelected4)}>
+        <Text style={styles.tileText}>{selected4 ? tile4 : ''}</Text>
+      </TouchableHighlight>
+      <TouchableHighlight style={styles.tile} onPress={() => handleTileClick(tile5, setSelected5)}>
+        <Text style={styles.tileText}>{selected5 ? tile5 : ''}</Text>
+      </TouchableHighlight>
+      <TouchableHighlight style={styles.tile} onPress={() => handleTileClick(tile6, setSelected6)}>
+        <Text style={styles.tileText}>{selected6 ? tile6 : ''}</Text>
+      </TouchableHighlight>
+      </View>
+      <Text style={styles.selectedLabel}>Selected Tiles:</Text>
+      <Text>First: {firstSelectedValue}</Text>
+      <Text>Second: {secondSelectedValue}</Text>
+      <Text>{match ? 'yes' : 'no'}</Text>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    backgroundColor: '#fefefe',
+    alignItems: 'center',
+    padding: 8,
+  },
+  title: {
+    fontSize: 24, 
+    marginBottom: 20, 
+  },
+  row: {
+    flexDirection: 'row', 
+  },
+  tile: {
+    width: 80, 
+    height: 80, 
+    backgroundColor: '#eee', 
+    margin: 10, 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+  },
+  tileText: {
+    fontSize: 20, 
+  },
+  selectedLabel: {
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+});
+```
+---
+## 🧠 Why We Can’t Compare Immediately (React Pitfall)
+
+In **Stage 2.4**, you tried this:
+
+```tsx
+if (firstSelectedValue === secondSelectedValue) {
+  setMatch(true);
+}
+```
+
+But React doesn’t update state **immediately**. So when this comparison runs:
+
+* `firstSelectedValue` is **from the last render**, not the one just set.
+* `secondSelectedValue` also hasn't been updated yet.
+
+That means the match check is almost always **a step behind**.
+
+---
+
+## ✅ Stage 2.4 Fix: Compare Inside `setSelectionCount` Callback
+
+Here’s a **working version** of the click handler that compares the two selected values **inside the state update**, using current `firstSelectedValue` and new `value`:
+
+### 💡 Stage 2.4 – Updated `handleTileClick`
+
+```tsx
+const handleTileClick = (value: number, setTileSelected: (val: boolean) => void) => {
+  setTileSelected(true);
+
+  setSelectionCount((prev) => {
+    if (prev === 0) {
+      setFirstSelectedValue(value);
+      setMatch(false); // Reset match each new round
+      return prev + 1;
+    } else if (prev === 1) {
+      setSecondSelectedValue(value);
+
+      // ✅ Compare right here: use firstSelectedValue + new value
+      if (firstSelectedValue === value) {
+        setMatch(true);
+      } else {
+        setMatch(false);
+      }
+
+      return 0; // Reset for next pair
+    }
+    return prev;
+  });
+};
+```
+
+---
+
+## 📊 Stage 2.3 vs. 2.4 – Comparison Table
+
+| Feature                             | Stage 2.3                                 | Stage 2.4                                                     |
+| ----------------------------------- | ----------------------------------------- | ------------------------------------------------------------- |
+| Resets selection count after 2 taps | ✅ Yes                                     | ✅ Yes                                                         |
+| Tracks two selected values          | ✅ Yes                                     | ✅ Yes                                                         |
+| Performs match logic                | ❌ Not yet                                 | ✅ Yes — inside state callback                                 |
+| Safe from stale state comparison    | ❌ No — uses outdated `firstSelectedValue` | ✅ Yes — compares `value` against current `firstSelectedValue` |
+| Prepares for further logic          | ✅ Start                                   | ✅ Sets up perfectly for delay or animation next               |
+
+---
+
+## 👨‍🏫 Teaching Tip – Explaining This to Students
+
+> “React doesn’t update state immediately — it *schedules* changes. So if you update a variable and try to read it right away, you’re actually seeing the old value.”
+
+> “To fix that, we use React’s `setState(prev => {...})` format. It lets us read the *actual latest value* and do things like compare, decide, or even reset something — all inside a single block.”
+
+---
+
+## ✅ What Stage 2.4 Accomplishes
+
+| Goal                               | Achieved? |
+| ---------------------------------- | --------- |
+| Select one tile                    | ✅         |
+| Select second tile                 | ✅         |
+| Reset after two selections         | ✅         |
+| Track first and second tile values | ✅         |
+| Check if the two values match      | ✅         |
+| Show "yes"/"no" on match outcome   | ✅         |
+
+---
+
+## 🧭 What’s Coming Next? (Stage 2.5 Preview Ideas)
+
+Now that match detection works, next steps might include:
+
+* ✅ **Hide unmatched tiles** after a delay (introduce `useEffect()` or `setTimeout`)
+* ✅ **Lock interaction** briefly during checking
+* ✅ **Track score or attempts**
+* ✅ **Prevent selecting the same tile twice**
+* ✅ **End-game logic** when all matches are found
+
+---
