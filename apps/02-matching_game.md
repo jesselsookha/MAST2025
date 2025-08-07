@@ -1233,7 +1233,7 @@ export default function App() {
 
   const [match, setMatch] = useState<boolean>(false);
 
-const handleTileClick = (value: number, setTileSelected: (val: boolean) => void) {
+  const handleTileClick = (value: number, setTileSelected: (val: boolean) => void) => {
   setTileSelected(true);
 
   setSelectionCount((prev) => {
