@@ -1343,3 +1343,266 @@ const styles = StyleSheet.create({
 This sets us up perfectly for later stages where we’ll use `useEffect()` to monitor changes and trigger logic when certain states (like both tiles being selected) are reached.
 
 ---
+
+## 🧩 Stage 5: Locking Matched Tiles & Improving Flip-Back Logic
+
+In previous stages, we learned how to:
+
+* Flip tiles over on click
+* Store the first and second selections
+* Compare their values
+* Flip both tiles back if they didn’t match
+
+Now, we are going one step further:
+
+* **If two tiles match, we keep them visible and “locked”**
+* **Only unmatched tiles will flip back**
+
+This means that matched tiles will not be flipped again or be accidentally selected twice.
+
+---
+
+### 💡 Key Concepts Introduced in This Stage
+
+1. **Locking Tiles**
+   Each tile now has a "locked" state (`locked1`, `locked2`, ..., `locked6`) that prevents it from being flipped back once a match has been found.
+
+2. **Remembering Which Tile to Flip Back**
+   We store a reference to the first tile’s "flip back" function using `firstSetter`. This allows us to call it later—after comparing with the second tile.
+
+3. **Cleaner Reset Logic**
+   The use of `setTimeout()` adds a short delay before unmatched tiles flip back, giving the player a moment to see what was selected.
+
+4. **firstLocker Function**
+   Similar to `firstSetter`, this holds the function to "lock" the first tile if a match is found.
+
+---
+
+### ✅ Logical Steps
+
+Here’s a simplified breakdown of what happens when a tile is clicked:
+
+1. **Tile is flipped over**
+
+   * It’s shown by setting `selected` to `true`.
+
+2. **If this is the first tile**:
+
+   * Its value is saved in `firstSelectedValue`.
+   * A “reset” function for it is stored in `firstSetter`.
+   * A “lock” function for it is stored in `firstLocker`.
+   * We prepare for the next tile by increasing the count.
+
+3. **If this is the second tile**:
+
+   * Its value is saved in `secondSelectedValue`.
+   * We compare it to `firstSelectedValue`:
+
+     * **If they match**:
+
+       * Set `match = true`
+       * Lock both tiles by using `firstLocker()` and directly locking the current tile.
+     * **If they don’t match**:
+
+       * Set `match = false`
+       * Wait a short moment (`setTimeout`) then:
+
+         * Call the saved reset function for the first tile
+         * Reset the current (second) tile
+
+4. **Counter resets**
+
+   * So we’re ready to check the next pair.
+
+---
+
+### 🧠 Why We’re Not Using Arrays Yet
+
+Even though there’s a lot of repetition in this code, we’re avoiding arrays **on purpose** for now. This helps you understand:
+
+* How state is tracked for each individual tile
+* How matching logic works step by step
+* How a game’s behaviour is controlled using if-statements and state
+
+Later, we’ll refactor this using arrays or a `<Tile>` component to make our code cleaner and more scalable.
+
+---
+
+### 🔧 Sample Visual Output
+
+```text
+Matching Game v1
+
+[ 2 ]  [   ]  [ 3 ]
+[ 1 ]  [ 3 ]  [ 1 ]
+
+Selected Tiles:
+First: 1
+Second: 1
+Matched: yes
+```
+
+If the player clicks the same number twice, the match stays. Otherwise, they flip back after 800ms.
+
+---
+### Complete Code for Stage 5 
+
+```tsx
+import { useState } from 'react'; 
+import { TouchableHighlight, Text, View, StyleSheet } from 'react-native';
+
+export default function App() {
+  // Tile values assigned once on load
+  const [tile1] = useState<number>(Math.floor(Math.random() * 3) + 1);
+  const [tile2] = useState<number>(Math.floor(Math.random() * 3) + 1);
+  const [tile3] = useState<number>(Math.floor(Math.random() * 3) + 1);
+  const [tile4] = useState<number>(Math.floor(Math.random() * 3) + 1);
+  const [tile5] = useState<number>(Math.floor(Math.random() * 3) + 1);
+  const [tile6] = useState<number>(Math.floor(Math.random() * 3) + 1);
+
+  // Track whether each tile is selected (flipped face up)
+  const [selected1, setSelected1] = useState<boolean>(false);
+  const [selected2, setSelected2] = useState<boolean>(false);
+  const [selected3, setSelected3] = useState<boolean>(false);
+  const [selected4, setSelected4] = useState<boolean>(false);
+  const [selected5, setSelected5] = useState<boolean>(false);
+  const [selected6, setSelected6] = useState<boolean>(false);
+
+  // Lock matched tiles so they can't be flipped again
+  const [locked1, setLocked1] = useState<boolean>(false);
+  const [locked2, setLocked2] = useState<boolean>(false);
+  const [locked3, setLocked3] = useState<boolean>(false);
+  const [locked4, setLocked4] = useState<boolean>(false);
+  const [locked5, setLocked5] = useState<boolean>(false);
+  const [locked6, setLocked6] = useState<boolean>(false);
+
+  // Count tracks number of selections (0 for first, 1 for second)
+  const [selectionCount, setSelectionCount] = useState<number>(0);
+
+  // Game logic: track selected tile values
+  const [firstSelectedValue, setFirstSelectedValue] = useState<number>(0);
+  const [secondSelectedValue, setSecondSelectedValue] = useState<number>(0);
+  const [match, setMatch] = useState<boolean>(false);
+
+  // Store callbacks to flip and lock the first selected tile
+  const [firstSetter, setFirstSetter] = useState<(() => void) | null>(null);
+  //const [secondSetter, setSecondSetter] = useState<(() => void) | null>(null); // Not required in this design
+  const [firstLocker, setFirstLocker] = useState<(() => void) | null>(null);
+
+  const handleTileClick = (
+    value: number,
+    setTileSelected: (val: boolean) => void,
+    setTileLocked: (val: boolean) => void
+  ) => {
+    setTileSelected(true); // Flip the tile
+
+    setSelectionCount((prev) => {
+      if (prev === 0) {
+        // First tile selected
+        setFirstSelectedValue(value);
+        setFirstSetter(() => () => setTileSelected(false)); // Save flip-back function
+        setFirstLocker(() => () => setTileLocked(true)); // Save lock function
+        setMatch(false); // Reset match
+        return prev + 1;
+      } else if (prev === 1) {
+        // Second tile selected
+        setSecondSelectedValue(value);
+        //setSecondSetter(() => () => setTileSelected(false)); // Not used, replaced with direct logic
+
+        if (firstSelectedValue === value) {
+          setMatch(true); // It's a match!
+          if (firstLocker) firstLocker(); // Lock the first tile
+          setTileLocked(true); // Lock the second tile
+        } else {
+          setMatch(false);
+          setTimeout(() => {
+            if (firstSetter) firstSetter(); // Flip first tile back
+            //if (secondSetter) secondSetter(); // Not needed
+            setTileSelected(false); // Flip current tile back
+            setFirstSetter(null);
+            //setSecondSetter(null); // Also not needed
+          }, 800);
+        }
+        return 0; // Reset for next turn
+      }
+      return prev; // Failsafe
+    });
+  };
+
+  return (
+    <View style={styles.container}>
+      <Text style={styles.title}>Matching Game v1</Text>
+      <View style={styles.row}>
+        <TouchableHighlight
+          style={styles.tile}
+          onPress={() => handleTileClick(tile1, setSelected1, setLocked1)}>
+          <Text style={styles.tileText}>{selected1 ? tile1 : ''}</Text>
+        </TouchableHighlight>
+        <TouchableHighlight
+          style={styles.tile}
+          onPress={() => handleTileClick(tile2, setSelected2, setLocked2)}>
+          <Text style={styles.tileText}>{selected2 ? tile2 : ''}</Text>
+        </TouchableHighlight>
+        <TouchableHighlight
+          style={styles.tile}
+          onPress={() => handleTileClick(tile3, setSelected3, setLocked3)}>
+          <Text style={styles.tileText}>{selected3 ? tile3 : ''}</Text>
+        </TouchableHighlight>
+      </View>
+      <View style={styles.row}>
+        <TouchableHighlight
+          style={styles.tile}
+          onPress={() => handleTileClick(tile4, setSelected4, setLocked4)}>
+          <Text style={styles.tileText}>{selected4 ? tile4 : ''}</Text>
+        </TouchableHighlight>
+        <TouchableHighlight
+          style={styles.tile}
+          onPress={() => handleTileClick(tile5, setSelected5, setLocked5)}>
+          <Text style={styles.tileText}>{selected5 ? tile5 : ''}</Text>
+        </TouchableHighlight>
+        <TouchableHighlight
+          style={styles.tile}
+          onPress={() => handleTileClick(tile6, setSelected6, setLocked6)}>
+          <Text style={styles.tileText}>{selected6 ? tile6 : ''}</Text>
+        </TouchableHighlight>
+      </View>
+      <Text style={styles.selectedLabel}>Selected Tiles:</Text>
+      <Text>First: {firstSelectedValue}</Text>
+      <Text>Second: {secondSelectedValue}</Text>
+      <Text>Matched: {match ? 'yes' : 'no'}</Text>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    backgroundColor: '#fefefe',
+    alignItems: 'center',
+    padding: 8,
+  },
+  title: {
+    fontSize: 24,
+    marginBottom: 20,
+  },
+  row: {
+    flexDirection: 'row',
+  },
+  tile: {
+    width: 80,
+    height: 80,
+    backgroundColor: '#eee',
+    margin: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  tileText: {
+    fontSize: 20,
+  },
+  selectedLabel: {
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+});
+```
