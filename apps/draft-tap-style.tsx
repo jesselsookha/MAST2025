@@ -1,3 +1,72 @@
+import { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+
+const GAME_DURATION = 5; // The duration of the game in seconds
+
+function App() {
+  const [taps, setTaps] = useState(0);
+  const [timeLeft, setTimeLeft] = useState(GAME_DURATION);
+  const [gameActive, setGameActive] = useState(false);
+
+  // useEffect to handle the timer logic using setTimeout
+  useEffect(() => {
+    let timerId: ReturnType<typeof setTimeout>;
+
+    if (gameActive && timeLeft > 0) {
+      timerId = setTimeout(() => {
+        setTimeLeft(prevTime => prevTime - 1);
+      }, 1000);
+    } else if (timeLeft === 0) {
+      setGameActive(false);
+    }
+
+    // Cleanup function to clear the timeout
+    return () => {
+      clearTimeout(timerId);
+    };
+  }, [gameActive, timeLeft]);
+
+  const handleTap = () => {
+    if (!gameActive) {
+      setGameActive(true);
+      setTaps(1);
+    } else {
+      setTaps(prevTaps => prevTaps + 1);
+    }
+  };
+
+  const handleReset = () => {
+    setGameActive(false);
+    setTaps(0);
+    setTimeLeft(GAME_DURATION);
+  };
+
+  return (
+    <View style={styles.container}>
+      <Text style={styles.title}>Tap Game</Text>
+      
+      <View style={styles.infoContainer}>
+        <Text style={styles.timerText}>Time Left: {timeLeft}s</Text>
+        <Text style={styles.scoreText}>Taps: {taps}</Text>
+      </View>
+
+      <TouchableOpacity 
+        style={[styles.button, !gameActive && styles.startButton]} 
+        onPress={handleTap}
+        disabled={!gameActive && timeLeft === 0}
+      >
+        <Text style={styles.buttonText}>{gameActive ? "TAP" : (timeLeft === 0 ? "GAME OVER" : "START")}</Text>
+      </TouchableOpacity>
+      
+      {timeLeft === 0 && (
+        <TouchableOpacity style={styles.resetButton} onPress={handleReset}>
+          <Text style={styles.buttonText}>RESET</Text>
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -54,3 +123,5 @@ const styles = StyleSheet.create({
     borderRadius: 5,
   },
 });
+
+export default App;
